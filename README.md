@@ -41,7 +41,32 @@
 
 <!-- Three or four sentences: what a user asks for, and what they get back. -->
 
+A listing has these fields:
+```
+  id             str    lst_001
+  title          str    Vintage Levi's 501 Jeans — Medium Wash
+  description    str    Classic 501s in a perfect medium wash. Some light fading a…
+  category       str    bottoms
+  style_tags     list   ['vintage', 'classic', 'denim', 'streetwear']
+  size           str    W30 L30
+  condition      str    good
+  price          float  38.0
+  colors         list   ['blue', 'indigo']
+  brand          str    Levi's
+  platform       str    depop
+```
 
+A wardrobe item has these fields:
+```
+  id             str    w_001
+  name           str    Baggy straight-leg jeans, dark wash
+  category       str    bottoms
+  colors         list   ['dark blue', 'indigo']
+  style_tags     list   ['denim', 'streetwear', 'baggy']
+  notes          str    High-waisted, sits above the hip
+```
+
+These are what `search_listings` can filter on.
 
 ---
 
