@@ -85,23 +85,36 @@ These are what `search_listings` can filter on.
 ### `search_listings`
 
 - **What it does:**
+searches the listings dataset based on a description and optionally, size and a maximum price, and returns matches
 - **Inputs:** <!-- name and type each: `max_price` (float), not "a price" -->
+`description` (str), `size` (str | None), `max_price` (float | None)
 - **Returns:**
+A list of matching listing dicts, each with `id`, `title`, `description`, `category`, `style_tags`, `size`, `condition`, `price`, `colors`, `brand`, `platform`
 - **When it has nothing:**
+An empty list
+
 
 ### `suggest_outfit`
 
 - **What it does:**
+Given an item and a user's wardrobe, returns some outfit styling ideas
 - **Inputs:**
+`new_item` (dict), `wardrobe` (dict)
 - **Returns:**
+A string saying the outfit suggestion that names some wardrobe pieces when the wardrobe is not empty
 - **When it has nothing:**
+When wardrobe is empty, return a string of general styling advice for the item
 
 ### `create_fit_card`
 
 - **What it does:**
+Writes a short postable caption based on the suggested styling ideas for the item
 - **Inputs:**
+`outfit`(str), `new_item`(dict)
 - **Returns:**
+A caption string created based on the item and the suggested outfit
 - **When it has nothing:**
+When the outfit is empty, still output a descriptive message string
 
 ---
 
@@ -119,6 +132,7 @@ These are what `search_listings` can filter on.
      function have to be real. -->
 
 **Branch rule:**
+If `search_listings` returns an empty list, put a message in `session["error"]` saying what the user could change and return the session without calling `suggest_outfit`. Otherwise, take the first item in the search results, put it in `session["selected_item"]`, and continue to `suggest_outfit`.
 
 **Where it lives:** `agent.py::run_agent`
 
