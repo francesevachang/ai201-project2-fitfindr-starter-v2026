@@ -186,9 +186,10 @@ $ python -c "from tools import create_fit_card; ..."
 
 **Moment 1**
 
-- *What I asked for:*
-- *What came back:*
+- *What I asked for:* I gave Claude my `search_listings` spec to suggest for implementation.
+- *What came back:* It did not include the `condition` or `platform` of the listings while comparing the listing against the user-specified description, so when user specified something like "excellent condition jacket" or "poshmark sneakers", those words would contribute nothing to the score.
 - *What I changed:*
+I added those attributes when concatenating a description for each listing.
 
 **Moment 2**
 

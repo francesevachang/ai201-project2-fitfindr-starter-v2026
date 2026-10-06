@@ -20,9 +20,18 @@ That last line is what your loop branches on. "Returns a list" earns nothing —
 the description has to say what is *in* the list.
 """
 
-import config  # noqa: F401 — you'll use this in search_listings
+import re
+
+import config
 from generate import generate
 from utils.data_loader import load_listings
+
+
+def _tokenize(text: str) -> set[str]:
+    """Lowercase word/number tokens, splitting on anything that isn't
+    alphanumeric or a period — so "8.5" stays one token but "S/M" and
+    "XL (oversized)" split into separate ones."""
+    return set(re.findall(r"[a-z0-9.]+", text.lower()))
 
 
 # ── Tool 1: search_listings ───────────────────────────────────────────────────
@@ -78,8 +87,39 @@ def search_listings(
     Test it from a terminal before you move on:
         python -c "from tools import search_listings; print(search_listings('graphic tee', max_price=30))"
     """
-    # TODO: replace this with your implementation
-    return []
+    listings = load_listings()
+
+    size_tokens = _tokenize(size) if size else None
+
+    candidates = []
+    for listing in listings:
+        if max_price is not None and listing["price"] > max_price:
+            continue
+        if size_tokens is not None and not size_tokens & _tokenize(listing["size"]):
+            continue
+        candidates.append(listing)
+
+    description_words = _tokenize(description)
+
+    scored = []
+    for listing in candidates:
+        searchable = " ".join([
+            listing["title"],
+            listing["description"],
+            listing["category"],
+            " ".join(listing["style_tags"]),
+            " ".join(listing["colors"]),
+            listing["brand"] or "",
+            listing["condition"],
+            listing["platform"],
+        ])
+        listing_words = re.findall(r"[a-z0-9.]+", searchable.lower())
+        score = sum(1 for word in listing_words if word in description_words)
+        if score > 0:
+            scored.append((score, listing))
+
+    scored.sort(key=lambda pair: pair[0], reverse=True)
+    return [listing for _, listing in scored[: config.SEARCH_RESULT_LIMIT]]
 
 
 # ── Tool 2: suggest_outfit ────────────────────────────────────────────────────
