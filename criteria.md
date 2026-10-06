@@ -28,6 +28,7 @@ tool calls and returns a fit card — in at least 4 of 5 tries.
 <!-- Why 4 of 5 and not 5 of 5? Something about your search, probably —
      "my search is a plain keyword match and some phrasings will miss" is a
      real answer. -->
+`search_listings` scores matches by keyword overlap instead of meaning, as described in `tools.py`. To leave some room for when a query matches a listing but shares no word with it without letting an outright broken search slip, 5/5 seems to be a reasonable target.
 
 ---
 
@@ -39,6 +40,8 @@ Given a query that matches no listings, the agent stops before calling
 **Why this target:**
 <!-- Why is 5 of 5 reasonable here when criterion 1 isn't? What's different
      about this path? -->
+
+To ensure the branch always fires, we set the target 5/5. Differ from criterion 1 where keyword matching can be fuzzy, this criterion either checks an empty list and branches correctly or it does not.
 
 ---
 
@@ -55,10 +58,11 @@ Given a query that matches no listings, the agent stops before calling
      suggest_outfit is the shape you're after. -->
 
 
+For all 5 out of 5 different queries, the id of `session["selected_item"]` matches the id of the listing dict actually passed into `suggest_outfit`, checked through observing the trace.
 
 **Why this target:**
 
-
+Passing the id is fully deterministic, meaning a correct wire should work every time, making setting the target anything below 5/5 unreasonable.
 
 ---
 
@@ -75,11 +79,12 @@ Given a query that matches no listings, the agent stops before calling
      sentence? A card longer than a caption anyone would post? Any of those can
      be turned into a number. -->
 
+Given 5 different items, at least 4 of them have a resulting fit card that is 1-4 sentences longs and mentions the item's price.
 
 
 **Why this target:**
 
-
+The fit card calls the model, which can occasionally drop a specified detail such as the price even with a clear prompt. The target of 4/5 catches systematic mismatch to the specification without treating one off output as a failure of the tool.
 
 ---
 
@@ -92,10 +97,11 @@ Given a query that matches no listings, the agent stops before calling
      search respects a price ceiling — anything, as long as it names a number
      or an observable outcome. -->
 
-
+Given a selected item and an empty wardrobe, `suggest_outfit` returns a nonempty string of general styling advice instead of an empty string or an exception, 5 out of 5 tries.
 
 **Why this target:**
 
+Similar to criterion 2, `suggest_outfit` either handles the empty wardrobe path correctly or it does not, so to check if the branch fires correctly, anything under 5/5 is not reasonable.
 
 
 ---
