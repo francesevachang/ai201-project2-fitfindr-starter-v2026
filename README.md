@@ -87,9 +87,9 @@ These are what `search_listings` can filter on.
 - **What it does:**
 searches the listings dataset based on a description and optionally, size and a maximum price, and returns matches
 - **Inputs:** <!-- name and type each: `max_price` (float), not "a price" -->
-`description` (str), `size` (str | None), `max_price` (float | None)
+`description` (str) describing what the user wants, `size` (str | None) to filter on, `max_price` (float | None) to filter on -- inclusive
 - **Returns:**
-A list of matching listing dicts, each with `id`, `title`, `description`, `category`, `style_tags`, `size`, `condition`, `price`, `colors`, `brand`, `platform`
+A list of matching listing dicts with best match first, each with `id`, `title`, `description`, `category`, `style_tags`, `size`, `condition`, `price`, `colors`, `brand`, `platform`
 - **When it has nothing:**
 An empty list
 
@@ -97,11 +97,11 @@ An empty list
 ### `suggest_outfit`
 
 - **What it does:**
-Given an item and a user's wardrobe, returns some outfit styling ideas
+Given an item and a user's wardrobe, suggest one or two outfits as outfit styling ideas
 - **Inputs:**
-`new_item` (dict), `wardrobe` (dict)
+a `new_item` (dict) the user is considering, a `wardrobe` (dict) with an `items` key holding a list of items
 - **Returns:**
-A string saying the outfit suggestion that names some wardrobe pieces when the wardrobe is not empty
+A nonempty string saying the outfit suggestion that names some wardrobe pieces when the wardrobe is not empty
 - **When it has nothing:**
 When wardrobe is empty, return a string of general styling advice for the item
 
@@ -110,9 +110,9 @@ When wardrobe is empty, return a string of general styling advice for the item
 - **What it does:**
 Writes a short postable caption based on the suggested styling ideas for the item
 - **Inputs:**
-`outfit`(str), `new_item`(dict)
+The `new_item`(dict) the user wants to thrift, `outfit`(str) -- the outfit suggestion string gotten from `suggest_outfit`
 - **Returns:**
-A caption string created based on the item and the suggested outfit
+A 2-4 sentence caption string created based on the item and the suggested outfit
 - **When it has nothing:**
 When the outfit is empty, still output a descriptive message string
 
