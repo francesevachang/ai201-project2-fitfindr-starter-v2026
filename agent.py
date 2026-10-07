@@ -13,10 +13,51 @@ Build and test your three tools in `tools.py` first. Then come here.
     python agent.py          runs both example paths below
 """
 
+import json
+import re
+
 import config
 import trace
 from tools import search_listings, suggest_outfit, create_fit_card
-from generate import ModelUnavailable
+from generate import generate, ModelUnavailable
+
+
+# ── query parsing ────────────────────────────────────────────────────────────
+
+_FENCE_RE = re.compile(r"^```(?:json)?\s*|\s*```$")
+
+
+def _parse_query(query: str) -> tuple[str, str | None, float | None]:
+    """
+    Ask the model to pull a description, a size, and a max_price out of a
+    plain-language query.
+    """
+    prompt = (
+        "Extract a search description, a size, and a maximum price from this "
+        "thrifting query. Respond with ONLY a JSON object — no other text, no "
+        "markdown fences — in exactly this shape:\n"
+        '{"description": "<keywords describing the item, with any size or '
+        'price removed>", "size": "<size string, or null if none>", '
+        '"max_price": <number, or null if none>}\n\n'
+        f"Query: {query}"
+    )
+    response = generate(prompt, temperature=0.0)
+
+    try:
+        parsed = json.loads(_FENCE_RE.sub("", response.strip()))
+    except json.JSONDecodeError:
+        return query, None, None
+
+    description = parsed.get("description") or query
+    size = parsed.get("size") or None
+
+    max_price = parsed.get("max_price")
+    try:
+        max_price = float(max_price) if max_price is not None else None
+    except (TypeError, ValueError):
+        max_price = None
+
+    return description, size, max_price
 
 
 # ── session state ─────────────────────────────────────────────────────────────
@@ -107,8 +148,32 @@ def run_agent(query: str, wardrobe: dict) -> dict:
     """
     session = new_session(query, wardrobe)
 
-    # TODO: delete these two lines and build the loop.
-    session["error"] = "The planning loop isn't built yet — see the TODO in agent.py."
+    count = 1
+    trace.check_iterations(count)
+
+    description, size, max_price = _parse_query(query)
+    session["parsed"] = {
+        "description": description,
+        "size": size,
+        "max_price": max_price,
+    }
+
+    results = search_listings(description, size=size, max_price=max_price)
+    session["search_results"] = results
+
+    if not results:
+        session["error"] = (
+            "No listings matched that search. Try a broader description, a "
+            "different size, or a higher max price."
+        )
+        return session
+
+    session["selected_item"] = results[0]
+
+    session["outfit_suggestion"] = suggest_outfit(session["selected_item"], wardrobe)
+
+    session["fit_card"] = create_fit_card(session["outfit_suggestion"], session["selected_item"])
+
     return session
 
 
