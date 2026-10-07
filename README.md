@@ -137,9 +137,18 @@ If `search_listings` returns an empty list, put a message in `session["error"]` 
 **Where it lives:** `agent.py::run_agent`
 
 **How the query is parsed:** <!-- regex, string splitting, or asking the model — say which -->
+Asking the model. `_parse_query()` sends the raw query to the LLM with a prompt asking for a JSON object (description, size, max_price), then parses that JSON. If parsing fails, it falls back to using the raw query as the description with size and max_price set to None.
 
 **What moves through the session:** <!-- which fields, in what order -->
+**What moves through the session:**
 
+1. `query` — the raw input
+2. `parsed` — the `description` / `size` / `max_price` dict from `_parse_query`
+3. `search_results` — the full list from `search_listings`
+4. `selected_item` — the first result (or left `None` if the branch exits early)
+5. `outfit_suggestion` — from `suggest_outfit`
+6. `fit_card` — from `create_fit_card`
+7. `wardrobe` is passed in unchanged, and `error` is only set if the run stops early at the branch.
 ---
 
 ## Sample Run
@@ -153,6 +162,31 @@ If `search_listings` returns an empty list, put a message in `session["error"]` 
 
 ```
 $ python app.py ask 'vintage graphic tee under $30'
+
+  Found:    Graphic Tee — 2003 Tour Bootleg Style — $24.0 on depop
+
+  Outfit:   Here are two outfit ideas using the new graphic tee and pieces already in your wardrobe:
+
+**Outfit 1: 90s Streetwear Grunge**
+*   **Top:** Graphic Tee (new)
+*   **Bottoms:** Baggy straight-leg jeans, dark wash
+*   **Outerwear:** Vintage black denim jacket
+*   **Shoes:** Chunky white sneakers
+*   **Accessories:** Black crossbody bag
+
+*Why it works:* Tucking or letting the boxy, faded tee hang loose over your high-waisted baggy jeans hits that effortless 90s streetwear proportion. Layering the slightly cropped black denim jacket on top adds depth and texture without hiding the graphic, while the chunky white sneakers tie the look together.
+
+**Outfit 2: Contrast Edgy Casual**
+*   **Top:** Graphic Tee (new)
+*   **Bottoms:** Wide-leg khaki trousers
+*   **Shoes:** Black combat boots
+*   **Accessories:** Brown leather belt, Black crossbody bag
+
+*Why it works:* This outfit plays with style mixing by pairing the grungy, faded band tee with polished khaki trousers. Tucking the tee into the wide-legs and adding the brown belt breaks up the silhouette, and the black combat boots ground the earth tones with an edgy finish.
+
+  Fit card: Scored this insanely soft 2003 tour bootleg tee for just $24 on Depop and honestly, it’s already the anchor of my whole wardrobe. The fade and the boxy fit giveit that exact 90s streetwear grunge energy I've been hunting for. Can't wait to beat this thing up even more.
+
+1 model calls this session, 2 served from cache, 91 prompt + 22 output tokens
 
 ```
 
@@ -210,9 +244,9 @@ I added those attributes when concatenating a description for each listing.
 
 **Moment 2**
 
-- *What I asked for:*
-- *What came back:*
-- *What I changed:*
+- *What I asked for:* I asked Claude how to parse a free-text query into description/size/max_price.
+- *What came back:* It suggested using regex.
+- *What I changed:* I found using a model call more suitable and rewrote using a model call.
 
 <!-- ═══════════════════════ UNIT 4 — THE TEST ═══════════════════════
 
