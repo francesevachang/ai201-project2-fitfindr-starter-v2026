@@ -79,7 +79,7 @@ Passing the id is fully deterministic, meaning a correct wire should work every 
      sentence? A card longer than a caption anyone would post? Any of those can
      be turned into a number. -->
 
-Given 5 different items, at least 4 of them have a resulting fit card that is 2-4 sentences longs and mentions the item's price.
+Given 5 different items, at least 4 of them have a resulting fit card that is 2-4 sentences longs and mentions the item, its price, and the platform, once each.
 
 
 **Why this target:**

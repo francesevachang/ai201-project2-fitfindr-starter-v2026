@@ -221,5 +221,24 @@ def create_fit_card(outfit: str, new_item: dict) -> str:
     Test it from a terminal before you move on:
         python -c "from tools import create_fit_card; from utils.data_loader import load_listings; print(create_fit_card('jeans and white sneakers', load_listings()[0]))"
     """
-    # TODO: replace this with your implementation
-    return ""
+    if not outfit or not outfit.strip():
+        return (
+            f"No outfit suggestion was available for {new_item['title']} "
+            f"(${new_item['price']:.2f} on {new_item['platform']}), so no "
+            "caption could be written."
+        )
+
+    prompt = (
+        f"Write a short social media caption (two to four sentences) someone "
+        f"would actually post about this thrifted find:\n\n"
+        f"Item: {new_item['title']}\n"
+        f"Description: {new_item['description']}\n"
+        f"Price: ${new_item['price']:.2f}\n"
+        f"Platform: {new_item['platform']}\n"
+        f"Outfit idea: {outfit}\n\n"
+        "It should read like a real post, not a product listing — mention "
+        "the item, its price, and the platform once each, and be specific "
+        "about the vibe rather than generic."
+    )
+
+    return generate(prompt)
