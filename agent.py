@@ -20,6 +20,7 @@ import config
 import trace
 from tools import search_listings, suggest_outfit, create_fit_card
 from generate import generate, ModelUnavailable
+from mcp_client import call_tool
 
 
 # ── query parsing ────────────────────────────────────────────────────────────
@@ -158,7 +159,12 @@ def run_agent(query: str, wardrobe: dict) -> dict:
         "max_price": max_price,
     }
 
-    results = search_listings(description, size=size, max_price=max_price)
+    # results = search_listings(description, size=size, max_price=max_price)
+    results = call_tool("search_listings", {
+        "description": description,
+        "size": size,
+        "max_price": max_price,
+    })
     session["search_results"] = results
 
     if not results:
