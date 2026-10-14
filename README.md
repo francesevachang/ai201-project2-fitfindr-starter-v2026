@@ -411,15 +411,21 @@ Fit card: Scored these dreamy rust wide-leg cords on Depop for $32 and I am neve
 
 | # | Criterion | Target | Verdict | How I decided |
 |---|---|---|---|---|
-| 1 |  |  |  |  |
-| 2 |  |  |  |  |
-| 3 |  |  |  |  |
-| 4 |  |  |  |  |
-| 5 |  |  |  |  |
+| 1 | Matching query completes all three tools, returns a fit card | 4 of 5 | MET (5/5) | All 5 tries of `vintage graphic tee under $30` ran `parse_query` → `search_listings` → `suggest_outfit` → `create_fit_card` and ended with a nonempty `session["fit_card"]`. |
+| 2 | Impossible query stops before `suggest_outfit` | 5 of 5 | MET (5/5) | All 5 tries of `designer ballgown size XXS under $5` set `session["error"]` and returned right after `search_listings` returned `[]`; the trace has no `suggest_outfit` or `create_fit_card` line in any of the 5. |
+| 3 | `selected_item`'s id matches what `suggest_outfit` receives | 5 of 5 | MET (5/5) | Verified structurally in `agent.py::run_agent` (`session["selected_item"] = results[0]` is the exact object passed to `suggest_outfit`, not a copy) and confirmed directly by patching `suggest_outfit` to record the id it received across 5 different queries — it matched `session["selected_item"]["id"]` every time. |
+| 4 | Fit card: 2-4 sentences, names item/price/platform once each | 4 of 5 | MET (5/5) | Checked one fit card per item across the 5 distinct-item scenarios in `scenarios.py`; all 5 landed in 2-4 sentences and named the item, price, and platform exactly once each. |
+| 5 | Empty wardrobe → nonempty general styling advice | 5 of 5 | MET (5/5) | All 5 tries with the empty wardrobe hit the `if not items:` branch in `tools.py::suggest_outfit` (`wardrobe_items=0` in the trace) and returned a nonempty, item-specific advice string — no empty string, no exception. |
 
 **Diagnoses**
 
+No misses on a plain read — every criterion cleared its target on all 5 tries I scored. Rather than call that a clean sweep, here's where I pushed back on my own result:
 
+**Criteria 1 and 2 didn't actually stress the risk their targets were written for.** Both ran the *same* query 5 times. `_parse_query` (`agent.py::_parse_query`) calls the model at `temperature=0.0`, and `search_listings` (`tools.py::search_listings`) makes no model call at all — so for one fixed query, nothing downstream of the query string has any real freedom to vary between tries. The target for criterion 1 (4 of 5, not 5 of 5) exists specifically because keyword-overlap search "will miss some phrasings" — but repeating one phrasing five times can only ever produce 5/5 or 0/5; it structurally cannot land on 3/5 or 4/5, which is the regime the target is meant to catch. I got 5/5, and it's real, but it's weak evidence for the thing I was worried about when I wrote the target. The fix isn't the target, it's the scenario: I'd replace "matching query completes" with 5 *different* real phrasings for the same kind of item (e.g. "band tee cheap," "old concert shirt," "faded graphic tee") before trusting this number. If that still comes back 5/5, criterion 1's target should move to 5 of 5.
+
+**Criterion 4's extra runs (beyond the 5 I scored) caught the one real failure in this whole eval.** I ran each of the 5 fit-card items 5 times each (25 runs total), even though the criterion only requires one check per item. On "chelsea boots," try 3 hit a genuine `ModelUnavailable: 503 UNAVAILABLE` from Gemini inside `suggest_outfit`, and `agent.py::run_agent`'s `except ModelUnavailable` handler caught it and stopped cleanly — session error set, no crash, but also no fit card for that attempt. That's a model/infra-layer failure, not a tool or prompt bug: nothing about `create_fit_card`'s sentence-count or mention requirements broke, the service was down for 1 call out of 25. This is exactly the risk criterion 4's sub-5/5 target already prices in, so I'm not tightening it — if anything, catching a real outage on the first extended run says 4 of 5 is about right, maybe even a touch generous for infra risk on top of wording risk.
+
+**No pattern across tools or the branch.** The one failure observed (the 503) sits in the model-call layer, isolated to a single external request — it didn't recur across the other 24 fit-card runs, the other 4 items, or any other criterion, so there's nothing systemic to fix in `tools.py` or the branch in `agent.py::run_agent`. If I had to name one thing to change before the next round, it's the test for criterion 1, not any of the five targets.
 
 ---
 
