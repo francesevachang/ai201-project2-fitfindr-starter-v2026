@@ -330,21 +330,39 @@ that produced it:
 **Happy path**
 
 ```
+$ python app.py ask 'vintage graphic tee under $30' --trace
 
+[1] parse_query
+      in:  vintage graphic tee under $30
+      out: description='vintage graphic tee', size=None, max_price=30.0
+[2] search_listings (via MCP)
+      in:  description='vintage graphic tee', size=None, max_price=30.0
+      out: 10 items: Graphic Tee — 2003 Tour Bootleg Style, Vintage Band Tee — Faded Grey, Vintage Graphic Hoodie — Faded Black … +7 more
+[3] suggest_outfit
+      in:  new_item='Graphic Tee — 2003 Tour Bootleg Style', wardrobe_items=10
+      out: Here are two outfit ideas using the new graphic tee and pieces already in your wardrobe:  **Outfit 1: 90s Stre…
+[4] create_fit_card
+      in:  outfit='Here are two outfit ideas using the new graphic tee and piec'…
+      out: Scored this insanely soft 2003 tour bootleg tee for just $24 on Depop and honestly, it’s already the anchor of…
 ```
 
 **Empty search**
 
 ```
+$ python app.py ask 'designer ballgown size XXS under $5' --trace
 
+[1] parse_query
+      in:  designer ballgown size XXS under $5
+      out: description='designer ballgown', size='XXS', max_price=5.0
+[2] search_listings (via MCP)
+      in:  description='designer ballgown', size='XXS', max_price=5.0
+      out: [] (empty)
+      →    branch: empty, stopping
+
+  No listings matched that search. Try a broader description, a different size, or a higher max price.
 ```
 
-**On the MCP move:** <!-- what changed in your code, and whether anything
-behaved differently afterwards. If the rewire didn't work, say exactly where it
-broke — the error text and the last thing that worked. That earns the point in
-full. -->
-
-
+**On the MCP move:** `search_listings` is called through `call_tool("search_listings", {...})` in `mcp_client.py` instead of calling the function in `tools.py` directly — that line is commented out in `agent.py` rather than deleted, so the diff is visible. The return value didn't change shape: still a list of listing dicts with the same fields, in the same order. The rewire worked on the first try; nothing downstream (selecting an item, building the outfit prompt, the fit card) needed to change.
 
 ---
 
