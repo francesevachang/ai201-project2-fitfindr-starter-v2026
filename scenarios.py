@@ -29,24 +29,54 @@ SCENARIOS = [
         "criterion": 2,
     },
     {
-        # A user with nothing saved. One of unit 4's three failure modes.
+        # A normal query. Criterion 3 — does selected_item's id survive into
+        # suggest_outfit unchanged? Checked by reading the trace, not by
+        # anything special about this query.
+        "name": "state: selected item matches what's passed on",
+        "query": "classic denim jacket",
+        "wardrobe": "example",
+        "criterion": 3,
+    },
+    # Criterion 4 — five different items, each should produce a fit card that
+    # mentions the item, its price, and the platform, in 2-4 sentences.
+    {
+        "name": "fit card: corduroy pants",
+        "query": "corduroy wide-leg pants rust",
+        "wardrobe": "example",
+        "criterion": 4,
+    },
+    {
+        "name": "fit card: leather bomber",
+        "query": "90s leather bomber jacket black",
+        "wardrobe": "example",
+        "criterion": 4,
+    },
+    {
+        "name": "fit card: platform mary janes",
+        "query": "platform mary janes black patent shoes",
+        "wardrobe": "example",
+        "criterion": 4,
+    },
+    {
+        "name": "fit card: crochet halter top",
+        "query": "crochet halter top cream boho",
+        "wardrobe": "example",
+        "criterion": 4,
+    },
+    {
+        "name": "fit card: chelsea boots",
+        "query": "suede chelsea boots tan",
+        "wardrobe": "example",
+        "criterion": 4,
+    },
+    {
+        # A user with nothing saved. Criterion 5 — the empty-wardrobe branch
+        # in suggest_outfit should return nonempty general styling advice.
         "name": "empty wardrobe",
         "query": "denim jacket under $50",
         "wardrobe": "empty",
-        "criterion": None,
+        "criterion": 5,
     },
-    # TODO: add what your criteria 3, 4 and 5 need.
-    #
-    # Set "criterion" to the number in criteria.md that the scenario tests.
-    # "criterion": None means a diagnostic run — useful to have, but it isn't
-    # one of your five, and run_eval.py marks it as such in the table.
-    #
-    # For a state criterion, any normal query works — what you're checking is
-    # what ends up in the session, not what the user typed.
-    #
-    # For a fit-card criterion, you probably want the SAME query listed more
-    # than once, or several different items, depending on what your criterion
-    # actually says.
 ]
 
 WARDROBES = ("example", "empty")

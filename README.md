@@ -268,18 +268,126 @@ I added those attributes when concatenating a description for each listing.
 
 | Criterion | Target | Try 1 | Try 2 | Try 3 | Try 4 | Try 5 | Verdict |
 |---|---|---|---|---|---|---|---|
-| 1.  |  |  |  |  |  |  |  |
-| 2.  |  |  |  |  |  |  |  |
-| 3.  |  |  |  |  |  |  |  |
-| 4.  |  |  |  |  |  |  |  |
-| 5.  |  |  |  |  |  |  |  |
+| 1. Matching query completes all three tools, returns a fit card | 4 of 5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
+| 2. Impossible query stops before `suggest_outfit` | 5 of 5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
+| 3. `selected_item`'s id matches what `suggest_outfit` actually receives | 5 of 5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
+| 4. Fit card (2-4 sentences, names item/price/platform once each) | 4 of 5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
+| 5. Empty wardrobe → nonempty general styling advice | 5 of 5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
 
-**Real output from one try**, pasted as text, naming the file and function
-that produced it:
+Full output for all 45 runs (5 criteria × 5 tries, plus extra fit-card-item
+scenarios) is in `results/run_2026-10-14_0053_before.md`, produced by
+`run_eval.py --label before`.
+
+For criterion 3 and criterion 4, the five scenarios behind the "Try" columns
+aren't five repeats of one run — they're the five different runs each
+criterion actually names (five different queries for state, five different
+items for the fit card), per the scenarios in `scenarios.py`.
+
+**Real output, pasted as text, naming the file and function that produced it:**
+
+**Criterion 1** — `agent.py::run_agent` (via `run_eval.py::run_once`), scenario "matching query completes," try 1, query `vintage graphic tee under $30`:
 
 ```
+[1] parse_query
+      in:  vintage graphic tee under $30
+      out: description='vintage graphic tee', size=None, max_price=30.0
+[2] search_listings (via MCP)
+      in:  description='vintage graphic tee', size=None, max_price=30.0
+      out: 10 items: Graphic Tee — 2003 Tour Bootleg Style, Vintage Band Tee — Faded Grey, Vintage Graphic Hoodie — Faded Black … +7 more
+[3] suggest_outfit
+      in:  new_item='Graphic Tee — 2003 Tour Bootleg Style', wardrobe_items=10
+      out: Here are two specific outfit ideas using the new graphic tee and pieces already in your wardrobe:  **Outfit 1:…
+[4] create_fit_card
+      in:  outfit='Here are two specific outfit ideas using the new graphic tee'…
+      out: Found the ultimate 2003 tour bootleg tee on Depop for $24 and I'm officially obsessed with how soft and worn-i…
+
+Fit card: Found the ultimate 2003 tour bootleg tee on Depop for $24 and I'm officially obsessed with how soft and worn-in it is. Already planning to pair the faded graphic with baggy dark denim and combat boots for an effortless grunge vibe. Grab it before I change my mind!
+```
+
+**Criterion 2** — `agent.py::run_agent`, the branch at the `if not results:` check, scenario "impossible query stops early," try 1, query `designer ballgown size XXS under $5`:
 
 ```
+[1] parse_query
+      in:  designer ballgown size XXS under $5
+      out: description='designer ballgown', size='XXS', max_price=5.0
+[2] search_listings (via MCP)
+      in:  description='designer ballgown', size='XXS', max_price=5.0
+      out: [] (empty)
+      →    branch: empty, stopping
+
+stopped early: yes — No listings matched that search. Try a broader description, a different size, or a higher max price.
+selected_item: (none)
+```
+
+**Criterion 3** — `agent.py::run_agent` (`session["selected_item"] = results[0]`, then `suggest_outfit(session["selected_item"], wardrobe)`). The trace only prints titles, so to check the *id* specifically I patched `suggest_outfit` to record the id it actually received and compared it against `session["selected_item"]["id"]`:
+
+```
+$ python -c "
+from unittest.mock import patch
+from agent import run_agent
+from utils.data_loader import get_example_wardrobe
+from tools import suggest_outfit as real_suggest_outfit
+
+seen = {}
+def spy(new_item, wardrobe):
+    seen['id_passed_in'] = new_item.get('id')
+    return real_suggest_outfit(new_item, wardrobe)
+
+import agent
+with patch.object(agent, 'suggest_outfit', spy):
+    session = run_agent('classic denim jacket', get_example_wardrobe())
+
+print('session[selected_item][id] =', session['selected_item']['id'])
+print('id passed into suggest_outfit =', seen['id_passed_in'])
+print('match:', session['selected_item']['id'] == seen['id_passed_in'])
+"
+
+session[selected_item][id] = lst_007
+id passed into suggest_outfit = lst_007
+match: True
+```
+
+Repeated across all 5 state-scenario tries in `results/run_2026-10-14_0053_before.md`, the trace consistently shows the same title going from `search_listings` into `suggest_outfit` (e.g. try 1: `selected_item: Denim Jacket — Light Wash, Cropped` → `suggest_outfit in: new_item='Denim Jacket — Light Wash, Cropped'`) — expected, since `session["selected_item"]` and the `new_item` passed to `suggest_outfit` are the same dict object, not a copy.
+
+**Criterion 4** — `tools.py::create_fit_card` (via `agent.py::run_agent`), one of the five items, "fit card: corduroy pants," try 1, query `corduroy wide-leg pants rust`:
+
+```
+[1] parse_query
+      in:  corduroy wide-leg pants rust
+      out: description='corduroy wide-leg pants rust', size=None, max_price=None
+[2] search_listings (via MCP)
+      in:  description='corduroy wide-leg pants rust', size=None, max_price=None
+      out: 5 items: Corduroy Wide-Leg Pants — Rust, Wide-Leg Linen Trousers — Natural, Straight Leg Khaki Trousers — Olive … +2 more
+[3] suggest_outfit
+      in:  new_item='Corduroy Wide-Leg Pants — Rust', wardrobe_items=10
+      out: Here are two great outfit combinations you can make using the new rust corduroy pants and pieces already in yo…
+[4] create_fit_card
+      in:  outfit='Here are two great outfit combinations you can make using th'…
+      out: Scored these dreamy rust wide-leg cords on Depop for $32 and I am never taking them off. They give the ultimat…
+
+Fit card: Scored these dreamy rust wide-leg cords on Depop for $32 and I am never taking them off. They give the ultimate effortless 70s autumn energy, especially paired with a crisp white tank and combat boots. Already planning ten different ways to style them before the weather even cools down! 🍂✨
+```
+
+3 sentences, names the item ("rust wide-leg cords"), the price ("$32") and the platform ("Depop") once each.
+
+**Criterion 5** — `tools.py::suggest_outfit`, the `if not items:` branch (via `agent.py::run_agent`), scenario "empty wardrobe," try 1, query `denim jacket under $50`:
+
+```
+[1] parse_query
+      in:  denim jacket under $50
+      out: description='denim jacket', size=None, max_price=50.0
+[2] search_listings (via MCP)
+      in:  description='denim jacket', size=None, max_price=50.0
+      out: 6 items: Denim Jacket — Light Wash, Cropped, High-Waisted Denim Shorts — Cutoff, Denim Vest — Medium Wash, Studded … +3 more
+[3] suggest_outfit
+      in:  new_item='Denim Jacket — Light Wash, Cropped', wardrobe_items=0
+      out: Since this is a cropped, light-wash denim jacket with structured shoulders and a classic vintage vibe, it's a …
+[4] create_fit_card
+      in:  outfit='Since this is a cropped, light-wash denim jacket with struct'…
+      out: Scored this vintage cropped light-wash denim jacket for $42 on Poshmark and I'm obsessed with the structured s…
+```
+
+`wardrobe_items=0` and `suggest_outfit` still returned a nonempty string of general styling advice (quoted above under "out:"), instead of an empty string or an exception.
 
 ---
 
